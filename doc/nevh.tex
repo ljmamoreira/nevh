@@ -1,0 +1,73 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[portuges]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath,icomma,tikz,amsfonts}
+\usepackage{bbold}
+
+\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
+
+\title{\texttt{nevh}: Numerical Evolution from the Hamiltonian}
+\date{\today}
+\author{LJM~Amoreira}
+\begin{document}
+\maketitle
+\section{Introduction}
+This package computes the trajectories of mechanical systems given their
+hamiltonian function and initial state alone.
+
+The partial derivatives of the hamiltonian in order to the $q$'s and $p$'s are
+estimated numerically and their values used to set up and solve the time ODE.
+
+\section{Hamilton's Equations}
+The physical state of a system with $N_f$ degreees of freedom is completely
+specified given the values of $2N_f$ variables $q_i$ (coordinates) and $p_i$
+(momentums) $i=1,\ldots,N_f$.  Its time evolution is determined by the
+Hamilton's Equations,
+\begin{align}
+  \dot q_i&=\pd{H}{p_i}&
+  \dot p_i&=-\pd{H}{q_i},
+\end{align}
+where $H=H(t,q,p)$ is the hamiltonian of the system which, in many situations,
+is simply the toal mechanical energy of the system, $H=T+U$. Once the partial
+derivatives in the rhs of Hamilton's equations are known, they define a system
+of $2N_f$ first order simultaneous ordinary differential equations (ODE) in time
+for the $q$'s and the $p$'s. The solution of this system is the trajectory (in
+phase space) followed by the system in its evolution.
+
+In most cases, the above mentioned system of ODEs must be solved numerically,
+and a large number of computer packages, for all significant computer languages
+have been developed to do that. Here, we take this numerical approach a step
+further, and compute the partial derivatives of the hamiltonian also
+numerically. With this approach, the evolution of the system can be obtained
+from the hamiltonian alone, saving the need for the derivation of the right hand
+sides of the Hamilton's equations. 
+
+
+\section{Hamilton's Equations in Numerical Form}
+Hamilton's
+Equations can be set in a more compact (and more suitable for numerical resolution
+using standard routines or in the current approach) form,
+\begin{equation}\label{eq:HEterse}
+  \dot \psi=f(t,\psi),
+\end{equation}
+where $\psi=(\psi_1,\,\psi_2,\,\ldots,\,\psi_{2N_f})=(q_i,\,p_i)$,
+$i=1,\ldots N_f$ and
+\begin{equation}
+  f(t,\psi)=
+  \begin{pmatrix}
+    \mathbb{0}&\mathbb{1}\\
+    -\mathbb{1} &\mathbb{O}
+  \end{pmatrix}\nabla_\psi H(t,\psi).
+\end{equation}
+Here, $\mathbb{0}$ and $\mathbb{1}$ represent the $N_f\times N_f$ zero matrix
+and identity matrix, respectively, and
+\begin{equation*}
+  \nabla_\psi H=\left(
+    \pd{H}{\psi_1},\,
+    \pd{H}{\psi_2},\,\ldots,\,
+    \pd{H}{\psi_{2N_f}}
+    \right).
+\end{equation*}
+\end{document}
