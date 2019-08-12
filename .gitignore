@@ -2,4 +2,4 @@
 doc/
 !doc/nevh.tex
 __pycache__/
-
+.ipynb_*

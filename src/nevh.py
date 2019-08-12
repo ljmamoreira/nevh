@@ -11,7 +11,7 @@ def grad(H, t, psi, dpsi, **hparams):
 
     Parameters:
     ===========
-    H: callable with signature H(t, psi, *params)
+    H: callable with signature H(t, psi, **params)
     t: double
     psi: array of doubles storing qs and ps
     dpsi: array of doubles (steps for finite difference formulas)
@@ -34,67 +34,46 @@ def grad(H, t, psi, dpsi, **hparams):
              for i in range(n)])
 
 
-def hgrad(H, t, psi, dpsi, **hparams):
-    """hgrad(H, t, psi, dpsi, **params)
-    Given function H(t, psi, **hparams), return numerical estimate of
-    "Hamilton's gradient", (dH/dpsi[1], -dH/dpsi[0])
-    The partial derivatives are computed using grad. hgrad has shape equal to
-    psi's.
-
+def trajectory(H, psi0, ti, tf, nsteps, dpsi, **hparams):
+    """trajectory(H, s0, ti, tf, nsteps, ds, **hparams)
+    Solves Hamilton's equations for hamiltonian H and initial state s0 at nsteps
+    times in the range [ti, tf]. The partial derivatives are computed using
+    central derivation formulas with steps ds. 
+    H must be def'ed with signature H(t, s, **hparams)
+    
     Parameters:
     ===========
-    H: callable with signature H(t, psi, *params)
-    t: double
-    psi: array of doubles storing qs and ps
-    dpsi: array of doubles (steps for finite difference formulas)
+    H: callable with signature H(t, s, **params)
+    s0: array of doubles; initial state
+    ti, tf: double; initial and final times
+    nsteps: integer; number of times at wich the solutions is computed
+    ds: array of doubles (steps for finite difference formulas)
     **hparams: other parameters of H
 
     Returns:
     ========
-    gradient: ndarray
-
-    Examples:
-    =========
-    >>> hgrad(lambda t,x: x[0]+x[1]**2, 0, [1,1] ,[0.1,0.1])
-    array([ 2., -1.])
+    times: array of doubles; times at wich the solutions is computed
+    traj: array of doubles width shape (2*ndf, nsteps+1); state vetors at each
+          time in times
     """
-    ndf = int(len(psi)/2)
-    I = np.eye(ndf)
-    Z = np.zeros((ndf,ndf))
-    hswap = np.vstack(
-            (np.hstack((Z,I)),
-             np.hstack((-I,Z)))
-            )
 
-    gradient = np.array(
-            [(H(t, psi + dpsi[i]*I[i]/2, **hparams)-
-              H(t, psi - dpsi[i]*I[i]/2, **hparams))/dpsi[i]
-             for i in range(ndf)])
-    hgradient = np.zeros(2*ndf)
-    hgradient[:ndf] = gradient[ndf:]
-    hgradient[ndf:] = -gradient[:ndf]
-    return hgradient
-
-
-# Signature for hamiltonian functions: H(t, psi, **hparamss)
-# pi = (q, p) -> arrays with dim = ndf (number of degrees of fereedom)
-# t -> time
-# **hparams -> Other, problem-specific parameters in H
-#               (masses, elastic constants, g, etc)
-# dp, dq -> deltas for partial derivatives
-# nsteps -> time resolution for solution: number of instants where q,p are
-#               computed
-# trajectory() returns two arrays. The first (shape=(nsteps+1,)) is the list
-#               of instants when (p,q) is computed. The second
-#               (shape=(2*ndf,nsteps+1)) stores the actual values of q and p
-
-def trajectory(H, psi0, ti, tf, nsteps, dpsi, **hparams):
-    # nsteps is the number of snapshots computed. First is at ti+dt, last at tf.
     dt = (tf - ti) / nsteps
-    ndf = int(len(psi0)/2)       # Number of degrees of freedom
+    ndim = len(psi0)                        # Number of canonical vars
+    ndf = int(ndim/2)                       # Number of degrees of freedom
     times = np.linspace(ti, tf, nsteps + 1) # One more to store ti
-    traj = np.zeros((2*ndf, nsteps + 1))      # One more to store S_i = (qi,pi)
-    
+    traj = np.zeros((2*ndf, nsteps + 1))    # One more to store S_i = (qi,pi)
+    I = np.eye(ndim)
+    # Internal function, so that I is accessible
+    def hgrad(H, t, psi, dpsi, **hparams):
+        gradient = np.array(
+                [(H(t, psi + dpsi[i]*I[i]/2, **hparams)-
+                  H(t, psi - dpsi[i]*I[i]/2, **hparams))/dpsi[i]
+                 for i in range(ndim)])
+        hgradient = np.zeros(2*ndf)
+        hgradient[:ndf] = gradient[ndf:]
+        hgradient[ndf:] = -gradient[:ndf]
+        return hgradient
+    # All set, now compute the trajectory
     traj[:, 0] = psi0
     psin = np.copy(psi0)
     for t_index, t in enumerate(times[:-1]):
@@ -106,3 +85,7 @@ def trajectory(H, psi0, ti, tf, nsteps, dpsi, **hparams):
         psin = psic + (k1 + 2*k2 + 2*k3 + k4) / 6
         traj[:,t_index+1] = np.copy(psin)
     return times, traj
+
+
+
+
