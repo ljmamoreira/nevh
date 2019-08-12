@@ -1,2 +1,5 @@
 *.swp
+doc/
+!doc/nevh.tex
+__pycache__/
 

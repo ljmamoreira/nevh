@@ -58,18 +58,18 @@ def hgrad(H, t, psi, dpsi, **hparams):
     >>> hgrad(lambda t,x: x[0]+x[1]**2, 0, [1,1] ,[0.1,0.1])
     array([ 2., -1.])
     """
-    ndf = int(len(gradient)/2)
-    i = np.eye(ndf)
-    z = np.zeros((ndf,ndf))
+    ndf = int(len(psi)/2)
+    I = np.eye(ndf)
+    Z = np.zeros((ndf,ndf))
     hswap = np.vstack(
-            (np.hstack((z,i)),
-             np.hstack((-i,z)))
+            (np.hstack((Z,I)),
+             np.hstack((-I,Z)))
             )
 
     gradient = np.array(
-            [(H(t, psi + dpsi[i]*identity[i]/2, **hparams)-
-              H(t, psi - dpsi[i]*identity[i]/2, **hparams))/dpsi[i]
-             for i in range(n)])
+            [(H(t, psi + dpsi[i]*I[i]/2, **hparams)-
+              H(t, psi - dpsi[i]*I[i]/2, **hparams))/dpsi[i]
+             for i in range(ndf)])
     hgradient = np.zeros(2*ndf)
     hgradient[:ndf] = gradient[ndf:]
     hgradient[ndf:] = -gradient[:ndf]
@@ -77,7 +77,7 @@ def hgrad(H, t, psi, dpsi, **hparams):
 
 
 # Signature for hamiltonian functions: H(t, psi, **hparamss)
-# q, p -> arrays with dim = ndf (number of degrees of fereedom)
+# pi = (q, p) -> arrays with dim = ndf (number of degrees of fereedom)
 # t -> time
 # **hparams -> Other, problem-specific parameters in H
 #               (masses, elastic constants, g, etc)
@@ -106,4 +106,3 @@ def trajectory(H, psi0, ti, tf, nsteps, dpsi, **hparams):
         psin = psic + (k1 + 2*k2 + 2*k3 + k4) / 6
         traj[:,t_index+1] = np.copy(psin)
     return times, traj
-
