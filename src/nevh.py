@@ -1,5 +1,8 @@
+# 2019-08-12
+# JML Amoreira: jmlamoreira@gmail.com
+# LJM Amoreira: amoreira@ubi.pt, ljmamoreira@gmail.com
+
 import numpy as np
-from copy import deepcopy
 
 
 def grad(H, t, psi, dpsi, **hparams):

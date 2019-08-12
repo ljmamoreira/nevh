@@ -10,7 +10,11 @@
 
 \title{\texttt{nevh}: Numerical Evolution from the Hamiltonian}
 \date{\today}
-\author{LJM~Amoreira}
+\author{JML~Amoreira\\
+  \texttt{jmlamoreira@gmail.com}
+  \and LJM~Amoreira\\
+  \texttt{amoreira@ubi.pt}
+}
 \begin{document}
 \maketitle
 \section{Introduction}
@@ -69,5 +73,10 @@ and identity matrix, respectively, and
     \pd{H}{\psi_{2N_f}}
     \right).
 \end{equation*}
-This package
+This package computes $\nabla_\psi H$ using central finite difference formulas
+and solves the motion equations using the plain RK4 method. The user only has to
+supply de definition of the hamiltonian and the initial state, no need to
+explicitly define the Hamilton's equations for the problem.
+
+Some simple examples are presented in the notebook in the \texttt{test/} folder.
 \end{document}
