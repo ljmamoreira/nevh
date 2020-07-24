@@ -3,3 +3,8 @@ doc/
 !doc/nevh.tex
 __pycache__/
 .ipynb_*
+expr/
+
+paper/
+!paper/paper.tex
+
