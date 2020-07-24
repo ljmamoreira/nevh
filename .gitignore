@@ -5,6 +5,5 @@ __pycache__/
 .ipynb_*
 expr/
 
-paper/
+paper/*
 !paper/paper.tex
-
