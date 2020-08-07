@@ -2,6 +2,10 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[english]{babel}
+\expandafter\let\csname equation*\endcsname\relax
+\expandafter\let\csname endequation*\endcsname\relax
+\usepackage{amsmath}
+\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
 \begin{document}
 \title{Numerical Evolution from the Hamiltonian}
 \author{José M L Amoreira$^1$ and Luís J M Amoreira$^2$}
@@ -12,17 +16,63 @@ Portugal}
 \ead{amoreira@ubi.pt}
 \begin{abstract}
   We propose a numerical method for the approximate calculation of the time
-  evolution of point particle systems given only the system's hamiltonian and
-  initial condition. The numerical method both generates \emph{and} solves
-  the equations of motion numerically. For demonstration purposes, a working
-  im\-ple\-men\-ta\-tion (written in \texttt{python}) is described and applied to
-  standard problems. The method may have some pedagogical merits but the
-  numerical effort of generating the equations of motion makes it unsuitable for
-  actual numerical solution of ``real'' problems with any but just a few degrees
-  of freedom.
+  evolution of point particle systems given only the system's hamiltonian
+  function and initial condition. The numerical method both generates \emph{and}
+  solves the equations of motion numerically. For demonstration purposes, a
+  working im\-ple\-men\-ta\-tion (written in \texttt{python}) is described and
+  applied to standard problems. The method may have some pedagogical merits but
+  the numerical effort of generating the equations of motion makes it unsuitable
+  for actual numerical solution of ``real'' problems with any but just a few
+  degrees of freedom.
 \end{abstract}
-\submitto{\EJP}
-\maketitle
-\section{Introduction}
+\noindent{\it Keywords\/}: Classical particle dynamics,
+Hamilton's equations,
+Numerical methods
 
+\submitto{\EJP}
+%\maketitle
+\section{Introduction}
+In the hamiltonian formulation of classical mechanics, the time evolutin of
+physical systems is governed by Hamilton's equations which, for point point
+particle systems, take the form
+\begin{align}
+  \dot q_i&=\pd{H}{p_i}&
+  \dot p_i&=-\pd{H}{q_i},
+\end{align}
+for $i=1,\;\ldots,\;N$ where $N$ is the number of degrees of freedom of the
+system (three times the number of particle for unconstrined, three dimensional
+systems), $q_i$, $p_i$ are the canonical coordinates and conjugate momenta
+respectively, and $H=H(t, q_i, p_i)$ is the hamiltonian function of the system
+(for XXX systems, the hamiltonian function is simply the mechanical energy of
+the system). For discrete systems, these equations are a set of first order
+ordinary differential equations (ODE) in time, whose solutions for given initial
+conditions are the trajectories foolowed by the system's particles.
+
+In all but a small handfull of very well known problems, this system of ODEs
+must be solved numerically. The usual approach in such cases is to obtain
+explicit expressions for the partial derivatives of the hamiltonian function
+(the right hand sides of Hamilton's equations) and to code those expressions in
+functions which are then supplied to a standard ODE solver subroutine. In this
+work, we propose an alternative numerical method, where the user only supplies
+the hamiltonian function of the system, leaving its partial derivatives to be
+computed numerically by the ODE solver.
+
+This procedure is computationally more expensive, since many evaluations of the
+hamiltonian function are needed in order to estimate its partial derivatives at
+any moment in time, and so it really is not suitable to the analisys of complex
+systems with many coupled degreess of freedom. However, for simple systems it is
+very practical and, anyway, it is an interesting comcept in it own that we
+haven't yet seen exposed anywhere.
+
+\section{Numerical procedure}
+\section{Simple implementation in \texttt{python} and examples}
+\section{Conclusion}
+
+\section*{References}
+\begin{thebibliography}{99}
+  \bibitem{gol:1980} H. Goldstein, \textsl{Classical Mechanics.} Addison-Wesley
+  (1980)
+  \bibitem{sir:2010} S. \v{S}irca, M. Horvat, \textsl{Computational Methods in
+  Physics.} Springer (2012)
+\end{thebibliography}
 \end{document}
