@@ -4,39 +4,6 @@
 
 import numpy as np
 
-
-def grad(H, t, psi, dpsi, **hparams):
-    """grad(H, t, psi, dpsi, **hparams)
-    Given function H(t, psi, **hparams), return numerical estimate of gradient
-    at t, psi, using step vector dpsi.
-    The gradient is computed using central differences. The returned gradient
-    has shape equal to psi.shape. 
-
-    Parameters:
-    ===========
-    H: callable with signature H(t, psi, **params)
-    t: double
-    psi: array of doubles storing qs and ps
-    dpsi: array of doubles (steps for finite difference formulas)
-    **hparams: other parameters of H
-
-    Returns:
-    ========
-    gradient: ndarray
-    
-    Examples:
-    =========
-    >>> grad(lambda t,x: x[0]+x[1]**2, 0, [1,1] ,[0.1,0.1])
-    array([1., 2.])
-    """
-    n = len(psi)
-    identity = np.eye(n)
-    return np.array(
-            [(H(t, psi + dpsi[i]*identity[i]/2, **hparams)-
-              H(t, psi - dpsi[i]*identity[i]/2, **hparams))/dpsi[i]
-             for i in range(n)])
-
-
 def trajectory(H, psi0, ti, tf, nsteps, dpsi, **hparams):
     """trajectory(H, s0, ti, tf, nsteps, ds, **hparams)
     Solves Hamilton's equations for hamiltonian H and initial state s0 at nsteps
@@ -66,7 +33,9 @@ def trajectory(H, psi0, ti, tf, nsteps, dpsi, **hparams):
     times = np.linspace(ti, tf, nsteps + 1) # One more to store ti
     traj = np.zeros((2*ndf, nsteps + 1))    # One more to store S_i = (qi,pi)
     I = np.eye(ndim)
-    # Internal function, so that I is accessible
+    # Using an internal, inlined definition instead of grad, so that I is
+    # accessible, no need to calculate its dimensions and generate it each 
+    # time grad is called
     def hgrad(H, t, psi, dpsi, **hparams):
         gradient = np.array(
                 [(H(t, psi + dpsi[i]*I[i]/2, **hparams)-

@@ -2,10 +2,12 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[english]{babel}
+\usepackage{bbm}
 \expandafter\let\csname equation*\endcsname\relax
 \expandafter\let\csname endequation*\endcsname\relax
 \usepackage{amsmath}
 \newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
+\newcommand{\undertilde}[1]{\underset{\tilde{}}{#1}}
 \begin{document}
 \title{Numerical Evolution from the Hamiltonian}
 \author{José M L Amoreira$^1$ and Luís J M Amoreira$^2$}
@@ -33,20 +35,20 @@ Numerical methods
 %\maketitle
 \section{Introduction}
 In the hamiltonian formulation of classical mechanics, the time evolutin of
-physical systems is governed by Hamilton's equations which, for point point
-particle systems, take the form
+physical systems is governed by Hamilton's equations which, for point particle
+systems, take the form
 \begin{align}
   \dot q_i&=\pd{H}{p_i}&
   \dot p_i&=-\pd{H}{q_i},
 \end{align}
-for $i=1,\;\ldots,\;N$ where $N$ is the number of degrees of freedom of the
-system (three times the number of particle for unconstrined, three dimensional
+for $i=1,\;\ldots,\;F$ where $F$ is the number of degrees of freedom of the
+system (three times the number of particles for unconstrined, three dimensional
 systems), $q_i$, $p_i$ are the canonical coordinates and conjugate momenta
 respectively, and $H=H(t, q_i, p_i)$ is the hamiltonian function of the system
 (for XXX systems, the hamiltonian function is simply the mechanical energy of
 the system). For discrete systems, these equations are a set of first order
 ordinary differential equations (ODE) in time, whose solutions for given initial
-conditions are the trajectories foolowed by the system's particles.
+conditions are the trajectories folowed by the system's particles.
 
 In all but a small handfull of very well known problems, this system of ODEs
 must be solved numerically. The usual approach in such cases is to obtain
@@ -60,11 +62,59 @@ computed numerically by the ODE solver.
 This procedure is computationally more expensive, since many evaluations of the
 hamiltonian function are needed in order to estimate its partial derivatives at
 any moment in time, and so it really is not suitable to the analisys of complex
-systems with many coupled degreess of freedom. However, for simple systems it is
-very practical and, anyway, it is an interesting comcept in it own that we
-haven't yet seen exposed anywhere.
+systems with more than just a few coupled degreess of freedom. However, for
+simple systems it is very practical and, anyway, it is an interesting concept in
+it own that we haven't yet seen exposed anywhere.
 
 \section{Numerical procedure}
+%The standard, reasonable approach to the problem of finding the trajectories of
+%$N$ interacting point particles using Hamilton's equations is as follows: one
+%first derives analytical expressions for the partial derivatives $\partial
+%H/\partial q_i$, $\partial H/\partial p_j$ of the system's Hamilton function;
+%next, these expressions are programmed and the code is supplied to some
+%computational routine implementing a numerical algorithm for ODEs, like Euler,
+%Runge-Kutta, etc. Such routines are readily available for virtually all
+%programming languages and interactve computational environments.
+Standard numerical routines for solving systems of ODEs expect the problem to be
+formulated in the form
+\begin{equation}\label{eq:s_ode}
+  \frac{d\tilde{\psi}}{dt}=\tilde{G}(t,
+  \tilde{\psi})
+\end{equation}
+where $\tilde\psi$ is an array with the functions to be determined and $\tilde
+G$ is a function of time and $\tilde\psi$. In Hamilton's equations for a system
+of $F$ degrees of freedom, we have
+\begin{equation}
+  \tilde\psi=[q_1, \ldots, q_F, p_1, \ldots, p_F]
+\end{equation}
+and
+\begin{equation}
+  \tilde G(t, \tilde\psi)=
+  \begin{pmatrix}
+    \mathbbm{O}&\mathbbm{1}\\-\mathbbm{1}&\mathbbm{O}
+  \end{pmatrix}\tilde\nabla H
+\end{equation}
+where $\mathbbm{O}$ and $\mathbbm{1}$ are, respectively, the $F\times F$ null
+and identity matrices and $\tilde\nabla H$ is a $2F$ componet column array whose
+elements are the
+partial derivatives of the hamiltonian function in order to the coordinate and 
+conjugate momentum variables $q_i$ and $p_j$,
+\begin{equation}
+  \tilde\nabla H = 
+  \begin{pmatrix}
+    \partial H/\partial q_1\\
+    \vdots\\
+    \partial H/\partial p_F
+  \end{pmatrix}.
+\end{equation}
+
+Usually, expressions for the partial derivatives of the hamiltonian function are
+deduced analitically and programmed in suitable form for being repeatedly called
+from the computational ODE solver routine. That is, the rhs of eq.
+(\ref{eq:s_ode}) is explicitly supplied by the user. Instead, in the methhod now
+proposed, the user only supplies the hamiltonian function, and it's up to the
+numerical ODE solver to compute the hamiltonian's partial derivatives as needed.
+
 \section{Simple implementation in \texttt{python} and examples}
 \section{Conclusion}
 
