@@ -9,22 +9,24 @@
 import numpy as np
 
 class Hgrad():
-    def __init__(self, H, N, dpsi, **hparams):
+    def __init__(self, H, dpsi, **hparams):
         self.H = H
-        self.N = N
+        self.N = len(dpsi)
+        self.ndf = self.N // 2
         self.dpsi = dpsi
         self.hparams = hparams
-        self.I = np.eye(2 * N)
+        self.I = np.eye(self.N)
 
     def __call__(self, t, psi):
         delta_H = np.array(
             [self.H(t, psi + self.dpsi[i]*self.I[i]/2, **self.hparams)-
              self.H(t, psi - self.dpsi[i]*self.I[i]/2, **self.hparams)
-                 for i in range(2*self.N)])
+                 for i in range(self.N)])
         grad = delta_H / self.dpsi
-        hgrad = np.zeros(2*self.N)
-        hgrad[:self.N] = grad[self.N:]
-        hgrad[self.N:] = -grad[:self.N]
+        hgrad = np.zeros(self.N)
+        ndf = self.N // 2
+        hgrad[:self.ndf] = grad[self.ndf:]
+        hgrad[self.ndf:] = -grad[:self.ndf]
         return hgrad
 
 
