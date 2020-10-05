@@ -87,20 +87,28 @@ written in the form
 where $N$ is the number of unknown functions $\psi_i(t)$ (and the number of
 equations in well posed problems) and $G_i(t, \psi_1, \psi_2, \ldots)\equiv
 G_i(t,\psi)$ are the rhs of the differential equations, wich must be coded by
-the user as callable subprograms. The ODE
-solver routine automatically invokes these subprograms in order (as many times
-as required by the sspecific method and/or desired accuracy) to compute
-estimates of the unknown functions $\psi_i$.
+the user as callable subprograms. During its execution, the ODE solver routine
+repeatedly invokes these subprograms (as many times as required by the specific
+integration algorithm and/or desired accuracy) in order to compute estimates for
+the values the unknown functions $\psi_i$ at given values of $t$.
 
-For Hamilton's equations, the $\psi_i$ are the coordinates and momenta, while
-the $G_i$ are the partial derivatives of the hamiltonian function, for which, in
-the standard approach, the user must derive expressions to be programmed.
-Instead, in the method now proposed, only the hamiltonian function is coded and
-the ODE solver is modified so that it repeatedly invokes that subprogram in
-order to compute the hamiltonian's partial derivatives numerically. Only then
-does it proceed to the estimation of the ODE solution.
+For Hamilton's equations, the $\psi_i$ are the coordinates and conjugate momenta
+of the system, while the $G_i$ are the partial derivatives of its hamiltonian
+function. The usual procedure is to derive analitical expressions for the $G_i$
+as functions of $t$, the coordinates and the momenta, and then to code those
+expressions as subprograms to be called by the ODE solver routine.
 
-To make this discussion clearer, let's consider a specific problem, the
+In the method now proposed, instead, the user only has to supply code to
+compute the value of the system's hamiltonian function; its partial derivatives
+(the $G_i$ in eq.~\eqref{eq:numheqs}) are estimated numerically by another
+subprogram called by the ODE solver. 
+
+%is coded and
+%the ODE solver is modified so that it repeatedly invokes that subprogram in
+%order to compute the hamiltonian's partial derivatives numerically. Only then
+%does it proceed to the estimation of the ODE solution.
+
+To make this discussion clearer, let us consider a specific problem, the
 classical harmonic oscilator~\cite{french:71}, and a specific ODE solver method,
 the explicit forward Euler method \cite{sir:2010}. The hamiltonian function for
 a classical oscilator with mass $m$ and restoring force constant $k$ is 
@@ -132,9 +140,9 @@ and~\eqref{eq:efe2} by
 where $\numap{X}_i$ means \emph{numerical approximation of $X$ at time $t_i$.}
 In order to make numerical aproximations to the partial derivatives of a
 function, one must evaluate it several times; at the very least, two evaluations
-are needed. For example, using the central difference method, the derivative is
-estimated as
-\begin{equation} 
+are needed. For example, using the second order central difference method, the
+derivative is estimated as
+\begin{equation}\label{eq:cdiff}
   \frac{\partial\psi}{\partial x} = 
     \frac{\psi(x+\delta x)-\psi(x-\delta t)}{2\delta x}+
   o(\delta x)^2,
@@ -159,19 +167,43 @@ are coded.  For small systems, using the hamiltonian is much simpler and faster.
 
 
 
-\section{Simple implementation in \texttt{python} and examples}
+\section{Simple implementation in Python and examples}
+We made a simple implementation of this method in Python, using the standard
+numerical extensions library NumPy~\cite{numpy:2011,numpy:2020}.  It consists of
+a simple function that calls the hamiltonian function supplied by the user to
+evaluate its partial derivatives, using the central difference formulas of
+eqs.~\eqref{eq:cdiff}. This function is then supplied to NumPy's ODE solver
+\texttt{solve\_ivp}.  For greater efficiency, it is wrapped in a class, whose
+objects store initialization details on creation, like the hamiltonian's
+parameters, the number of degrees of freedom, the values of the discretization
+steps, etc. These objects are callable with signature adjusted to what the ODE
+solver expects.  The whole class definition fits in a few dozen lines of code
+and is very easy to use. It is available at 
+
 \section{Conclusion}
 
 \section*{References}
 \begin{thebibliography}{99}
   \bibitem{gol:1980} H. Goldstein, \textsl{Classical Mechanics.} Addison-Wesley
   (1980)
+%
   \bibitem{french:71} A.P.~French, \textsl{Vibration and Waves.} W.W. Norton \&
   Company (1971)
+%
   \bibitem{sir:2010} S. \v{S}irca, M. Horvat, \textsl{Computational Methods in
   Physics.} Springer (2012)
+%
   \bibitem{nr:2007} W.H.~Press, S.A.~Teukolsky, W.T.~Vetterling, B.P.~Flannery,
   \textsl{Numerical Recipes -- The Art of Scientific Computing,} 3rd Ed.
   Cambridge University Press (2007)
+%
+  \bibitem{numpy:2011} S.J.~van der Walt, S.C.~Colbert, G.~Varoquaux,
+  \textsl{The NumPy array: a structure for efficient numerical computation,}
+  Computing in Science \& Engineering, \textbf{13} no. 2, 22-30 (2011).
+  doi: 10.1109/MCSE.2011.37
+%
+  \bibitem{numpy:2020} C.R.~Harris, K.J.~Millman, S.J.~van der Walt et. al.,
+  \textsl{Array programming with NumPy,} Nature \textbf{585}, 357-362 (2020).
+  https://doi.org/10.1038/s41586-020-2649-2
 \end{thebibliography}
 \end{document}
