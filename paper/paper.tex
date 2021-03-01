@@ -2,6 +2,8 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[english]{babel}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric}
 \usepackage{bbm}
 \expandafter\let\csname equation*\endcsname\relax
 \expandafter\let\csname endequation*\endcsname\relax
@@ -27,15 +29,15 @@ Portugal}
 Portugal}
 \ead{amoreira@ubi.pt}
 \begin{abstract}
-  We propose a numerical method for the approximate calculation of the time
+  We propose a numerical method for approximate calculations of the time
   evolution of point particle systems given only the system's hamiltonian
-  function and initial condition. The numerical method both generates \emph{and}
-  solves the equations of motion numerically. For demonstration purposes, a
-  working im\-ple\-men\-ta\-tion (written in \texttt{python}) is described and
-  applied to standard problems. The method may have some pedagogical merits but
-  the numerical effort of generating the equations of motion makes it unsuitable
-  for actual numerical solution of ``real'' problems with any but just a few
-  degrees of freedom.
+  function and initial conditions. The method both generates and solves the
+  equations of motion numerically. For demonstration purposes, a working
+  im\-ple\-men\-ta\-tion (written in \texttt{python}) is described and applied
+  to standard problems. The method may have some pedagogical merits but the
+  numerical effort of generating the equations of motion makes it unsuitable for
+  actual numerical solution of ``real'' problems with any but just a few degrees
+  of freedom.
 \end{abstract}
 \noindent{\it Keywords\/}: Classical particle dynamics,
 Hamilton's equations,
@@ -44,38 +46,82 @@ Numerical methods
 \submitto{\EJP}
 %\maketitle
 \section{Introduction}
-In the hamiltonian formulation of classical mechanics~\cite{gol:1980}, the time
-evolution of physical systems is governed by Hamilton's equations which, for
-point particle systems, take the form
+%-----
+% 1 As equações de Hamilton de um sistema de massas pontuais formam um sistema
+% de N ODEs de 1ª ordem, com a forma 
+% \dot x_i= G_i(t, \tilde x)
+%-----
+In the hamiltonian formulation of classical mechanics~\cite{gol:1980, fw:2003},
+the time evolution of physical systems is governed by Hamilton's equations
+which, for point particle systems, take the form
 \begin{align}\label{eq:heqs}
   \dot q_i&=\pd{H}{p_i}&
-  \dot p_i&=-\pd{H}{q_i},
+  \dot p_i&=-\pd{H}{q_i},&
+  i&=1, 2, \ldots, N,
 \end{align}
-for $i=1,\;\ldots,\;N,$ where $N$ is the number of degrees of freedom of the
-system (three times the number of particles for unconstrained, three dimensional
-systems), $q_i$, $p_i$ are the canonical coordinates and conjugate momenta
-respectively, $H=H(t, q_i, p_i)$ is the hamiltonian function of the system
-(for XXX systems, the hamiltonian function is simply the mechanical energy of
-the system) and dotted symbols denote their total derivative with respect to
-time. For discrete systems, these equations are a set of first order
-ordinary differential equations (ODE) in time, whose solutions for given initial
-conditions are the trajectories folowed by the system's particles.
+where $N$ is the number of degrees of freedom of the system (three times the
+number of particles for three dimensional, unconstrained systems), $q_i$, $p_i$
+are the canonical coordinates and conjugate momenta respectively, $H=H(t, q_i,
+p_i)$ is the hamiltonian function of the system (for systems with time
+independent potentials and constraints, the hamiltonian is simply their
+mechanical energy function~\cite{fw:2003}) and dotted symbols denote their
+total derivative with respect to time. 
+Renaming the canonical coordinates and momenta as
+\begin{equation}
+  x_j = 
+  \begin{cases}
+    q_i&\quad\text{if }j\leq N\\
+    p_{i-N}&\quad\text{if }j> N
+  \end{cases}
+  \qquad j=1, \ldots, 2N,
+\end{equation}
+Hamilton's equations take a more unified form
+\begin{equation}\label{eq:std_ode}
+  \dot x_j=G_j(t, x_1, x_2, \ldots, x_{2N}),\quad j=1, \ldots, 2N
+\end{equation}
+where
+\begin{equation}
+  G_j(t, x)=
+  \begin{cases}
+    \frac{\partial H}{\partial x_{j+N/2}},&\quad\text{if }j\leq N\\
+    \frac{\partial H}{\partial x_{j-N/2}},&\quad\text{if }j> N.
+  \end{cases}
+\end{equation}
+This expression can be further simplified as a matrix product:
+\begin{equation}\label{eq:rhsmf}
+  G_i=M_{i j}\frac{\partial H}{\partial x_j},\qquad
+  \text{with }
+  M=
+  \begin{pmatrix}
+    \mathbbm{O}&\mathbbm{I}\\
+    -\mathbbm{I}&\mathbbm{O}
+  \end{pmatrix},
+\end{equation}
+where $\mathbbm{O}$ and $\mathbbm{I}$ represent, respectively, the $N\times N$
+zero and identity matrices.  Equation~\eqref{eq:std_ode} shows the Hamilton's
+equations for a system of point particles with $N$ degrees of freedom as a
+system of $2N$ first order ordinary differential equations (ODEs) on $2N$
+variables $x_1, x_2, \ldots, x_{2N}$.
 
 In all but a small handfull of very well known simple problems, this system of
-ODEs must be solved numerically. The usual approach in such cases is to obtain
-explicit expressions for the partial derivatives of the hamiltonian function
-(the right hand sides of Hamilton's equations) and to code those expressions in
-subprograms which are then supplied to a standard ODE solver subroutine. In this
-work, we propose an alternative numerical method, where the user only supplies
-the hamiltonian function of the system, leaving its partial derivatives to be
-computed numerically by the ODE solver itself.
+ODEs must be solved numerically. All popular library routines for solving
+ODEs\footnote{Like ODEPACK \cite{odepack} for fortran, \texttt{odeint}
+  \cite{odeint} in c++ boost libraries or 
+  \texttt{scipy.integrate.solve\_ivp}~\cite{scipy} for python.}
+require the user to supply subprograms to compute the rhs functions $G_i$.
+The ODE solver invokes these subprograms to compute estimates for the
+values of the unknowns $x_i$ for arbitrary time $t$, given their values at a
+given instant $t_0$.
 
-This procedure is computationally more expensive, since many evaluations of the
-hamiltonian function are needed in order to estimate its partial derivatives at
-any moment in time, and so it really is not suitable to the analysis of complex
-systems with more than just a few coupled degreess of freedom. However, for
-simple systems it is very practical and, anyway, it is an interesting concept in
-it own that we haven't seen exposed elsewhere.
+In this work, we propose an alternative numerical method, where the user only
+supplies the hamiltonian function of the system, leaving its partial derivatives
+to be computed numerically as well.  This procedure is computationally more
+expensive, since many evaluations of the hamiltonian function are needed in
+order to estimate its partial derivatives at any moment in time, and so it
+really is not suitable for the analysis of complex systems with more than just a
+few coupled degreess of freedom. However, for simple systems it is very
+practical and, anyway, it is an interesting concept in its own, which we haven't
+seen exposed elsewhere.
 
 %-------------------------------------------------------------------------------
 \section{Numerical procedure}
@@ -87,86 +133,154 @@ written in the form
 where $N$ is the number of unknown functions $\psi_i(t)$ (and the number of
 equations in well posed problems) and $G_i(t, \psi_1, \psi_2, \ldots)\equiv
 G_i(t,\psi)$ are the rhs of the differential equations, wich must be coded by
-the user as callable subprograms. During its execution, the ODE solver routine
-repeatedly invokes these subprograms (as many times as required by the specific
-integration algorithm and/or desired accuracy) in order to compute estimates for
-the values the unknown functions $\psi_i$ at given values of $t$.
+the user as callable subprograms. For instance, the python standard initial
+value problem solver routine has interface
+\texttt{solve\_ivp(rhs, time\_interval, psi\_0)}; here, \texttt{rhs} is the name
+of a phython function to compute the values of the rhs functions $G_i$.
+During its execution, the ODE solver routine repeatedly invokes these
+subprograms (as many times as required by the specific integration algorithm
+and/or desired accuracy) in order to compute estimates for the values the
+unknown functions $\psi_i$ at given values of $t$.
 
 For Hamilton's equations, the $\psi_i$ are the coordinates and conjugate momenta
 of the system, while the $G_i$ are the partial derivatives of its hamiltonian
-function. The usual procedure is to derive analitical expressions for the $G_i$
-as functions of $t$, the coordinates and the momenta, and then to code those
-expressions as subprograms to be called by the ODE solver routine.
+function (reordered and eventually symmetrized, according to
+eq.~\ref{eq:rhsmf}). The usual procedure is to derive analytical expressions
+for the $G_i$ as functions of $t$, the coordinates and the momenta, and then to
+code those expressions as subprograms to be called by the ODE solver routine.
 
 In the method now proposed, instead, the user only has to supply code to
 compute the value of the system's hamiltonian function; its partial derivatives
-(the $G_i$ in eq.~\eqref{eq:numheqs}) are estimated numerically by another
-subprogram called by the ODE solver. 
+(the $G_i$ in eq.~\eqref{eq:numheqs}) are estimated numerically and reordered by
+another subprogram which the ODE solver calls. Note that the differentiation and
+reordering of the partial derivatives can be computed by a general purpose
+routine. Indeed, the gradient can even be computed also by a standard numerical
+library function, if available for the chosen computing system or language.
+Figure~\ref{fig:a} displays flowcharts for both methods.
+\begin{figure}[htb]
+  \centering
+    \begin{tikzpicture}[node distance=1.0cm, font=\sffamily,scale=0.7]
+      \footnotesize
+      \tikzstyle{io} = [trapezium,
+                        trapezium left angle=70,
+                        trapezium right angle=110,
+                        minimum width=1.0cm,
+                        minimum height=.6cm,
+                        text centered,
+                        draw=black,
+                        fill=blue!20]
+      \tikzstyle{libcode} = [rectangle,
+                             rounded corners,
+                             minimum width=1.5cm,
+                             text width=1.5cm,
+                             minimum height=0.6cm,
+                             text centered,
+                             draw=black,
+                             fill=orange!20]
+      \tikzstyle{usercode} = [rectangle,
+                             %rounded corners,
+                             minimum width=1.5cm,
+                             minimum height=0.6cm,
+                             text centered,
+                             draw=black,
+                             text width=1.5cm,
+                             fill=green!20]
+      \tikzstyle{arrow} = [thick,->,>=stealth]
 
-%is coded and
-%the ODE solver is modified so that it repeatedly invokes that subprogram in
-%order to compute the hamiltonian's partial derivatives numerically. Only then
-%does it proceed to the estimation of the ODE solution.
+      \begin{scope}[xshift=-3.5cm]
+        \node at (0,1) {Standard method};
+        \node (input) [io] {Initial state};
+        \node (odesolver) [libcode, below of=input] {ODE Solver};
+        \node (output) [io, below of=odesolver] {Final state};
+        \node (rhs) [usercode, right of=odesolver, node distance=2.3cm]
+          {$M\,\text{grad}\,H$};
+        \draw [arrow] (input) -- (odesolver);
+        \draw [arrow] (odesolver) -- (output);
+        \draw [arrow] (odesolver) -- (rhs);
+        \draw [arrow]  (rhs) -- (odesolver);
+      \end{scope}
 
-To make this discussion clearer, let us consider a specific problem, the
-classical harmonic oscilator~\cite{french:71}, and a specific ODE solver method,
-the explicit forward Euler method \cite{sir:2010}. The hamiltonian function for
-a classical oscilator with mass $m$ and restoring force constant $k$ is 
-\begin{equation}
-  H(q,p)=\frac{1}{2}kq^2+\frac{p^2}{2m}.
-\end{equation}
-Hamilton's equations~\eqref{eq:heqs} then read
-\begin{align}
-  \frac{dq}{dt}&=\frac{p}{m}&
-  \frac{dp}{dt}&=-kq,
-\end{align}
-wich are already in the form of eq.~\eqref{eq:numheqs}. Given initial values
-$q_0$ and $p_0,$ successive values can be estimated at times $t_1$, $t_2$, \ldots
-by iterating the formulas
-\begin{align}
-  q_{i+1}&=q_{i}+\frac{p_i}{m}\delta t_i\label{eq:efe1}\\
-  p_{i+1}&=p_{i}-kq_i\delta t_i\label{eq:efe2},
-\end{align}
-where $\delta t_i=t_{i+1}-t_i$. It is now easy to write a  program that
-implements this method, and this the usual procedure. With this paper, we
-consider a method where explicit expressions for the hamiltonian's partial
-derivatives in the equations of motion are replaced by numerical estimates. In
-our toy problem, that amounts to rewriting eqs~\eqref{eq:efe1}
-and~\eqref{eq:efe2} by
-\begin{align*}
-  q_{i+1}&=q_{i}+\numap{\frac{\partial H}{\partial p}}_i \delta t_i\\
-  p_{i+1}&=p_{i}-\numap{\frac{\partial H}{\partial q}}_i\delta t_i,
-\end{align*}
-where $\numap{X}_i$ means \emph{numerical approximation of $X$ at time $t_i$.}
-In order to make numerical aproximations to the partial derivatives of a
-function, one must evaluate it several times; at the very least, two evaluations
-are needed. For example, using the second order central difference method, the
-derivative is estimated as
-\begin{equation}\label{eq:cdiff}
-  \frac{\partial\psi}{\partial x} = 
-    \frac{\psi(x+\delta x)-\psi(x-\delta t)}{2\delta x}+
-  o(\delta x)^2,
-\end{equation}
-leading to approximation formulas that, for our example problem, read 
-\begin{align}
-  \numap{\frac{\partial H}{\partial p}}_i &=
-  \frac{H(q_i, p_i+\delta p)-H(q_i, p_i-\delta p)}{2\delta p}\\
-  \numap{\frac{\partial H}{\partial q}}_i &=
-  \frac{H(q_i+\delta q, p_i)-H(q_i-\delta q, p_i)}{2\delta q},
-\end{align}
-where $\delta q$ and $\delta p$ are suitably chosen discretization parameters.
-Other approximations have higher accuracy, at the cost of extra evaluations of
-the function to be derived.
+      \begin{scope}[xshift=3.5cm]
+        \node at (0,1) {Proposed method};
+        \node (input) [io] {Initial state};
+        \node (odesolver) [libcode, below of=input] {ODE Solver};
+        \node (output) [io, below of=odesolver] {Final state};
+        \draw [arrow] (input) -- (odesolver);
+        \draw [arrow] (odesolver) -- (output);
+        \node (rhs) [libcode, right of=odesolver, node distance=2.5cm]
+          {General purpose\\ $M\,\text{grad}\,f$ routine};
+        \draw [arrow] (odesolver) -- (rhs);
+        \draw [arrow]  (rhs) -- (odesolver);
+        \node (h) [usercode, right of=rhs, node distance=2.5cm] {$H$ function};
+        \draw [arrow] (rhs) -- (h);
+        \draw [arrow] (h) -- (rhs);
+      \end{scope}
+    \end{tikzpicture}
+  \caption{Flowcharts for the standard and the proposed methods. Round cornered
+    boxes represent library or general purpose code; right angled boxes contain
+    code for the specific calculation at hand, which the user must
+  supply.\label{fig:a}}
+\end{figure}
 
-This need for repeated evaluation of the system's hamiltonian reduces the
-efficiency of this method. However, programming a procedure for the hamiltonian
-function is usually much simpler then doing it for the set of its partial
-derivatives.  Also, adjusting the syntax and semantics of the ODE solver and the
-hamiltonian procedure is likewise much simpler than when the partial derivatives
-are coded.  For small systems, using the hamiltonian is much simpler and faster.
+%To make this discussion clearer, let us consider a specific problem, the
+%classical harmonic oscilator~\cite{french:71}, and a specific ODE solver method,
+%the explicit forward Euler method \cite{sir:2010}. The hamiltonian function for
+%a classical oscilator with mass $m$ and restoring force constant $k$ is 
+%\begin{equation}
+%  H(q,p)=\frac{1}{2}kq^2+\frac{p^2}{2m}.
+%\end{equation}
+%Hamilton's equations~\eqref{eq:heqs} then read
+%\begin{align}
+%  \frac{dq}{dt}&=\frac{p}{m}&
+%  \frac{dp}{dt}&=-kq,
+%\end{align}
+%wich are already in the form of eq.~\eqref{eq:numheqs}. Given initial values
+%$q_0$ and $p_0,$ successive values can be estimated at times $t_1$, $t_2$, \ldots
+%by iterating the formulas
+%\begin{align}
+%  q_{i+1}&=q_{i}+\frac{p_i}{m}\delta t_i\label{eq:efe1}\\
+%  p_{i+1}&=p_{i}-kq_i\delta t_i\label{eq:efe2},
+%\end{align}
+%where $\delta t_i=t_{i+1}-t_i$. It is now easy to write a  program that
+%implements this method, and this the usual procedure. With this paper, we
+%consider a method where explicit expressions for the hamiltonian's partial
+%derivatives in the equations of motion are replaced by numerical estimates. In
+%our toy problem, that amounts to rewriting eqs~\eqref{eq:efe1}
+%and~\eqref{eq:efe2} by
+%\begin{align*}
+%  q_{i+1}&=q_{i}+\numap{\frac{\partial H}{\partial p}}_i \delta t_i\\
+%  p_{i+1}&=p_{i}-\numap{\frac{\partial H}{\partial q}}_i\delta t_i,
+%\end{align*}
+%where $\numap{X}_i$ means \emph{numerical approximation of $X$ at time $t_i$.}
+%In order to make numerical aproximations to the partial derivatives of a
+%function, one must evaluate it several times; at the very least, two evaluations
+%are needed. For example, using the second order central difference method, the
+%derivative is estimated as
+%\begin{equation}\label{eq:cdiff}
+%  \frac{\partial\psi}{\partial x} = 
+%    \frac{\psi(x+\delta x)-\psi(x-\delta t)}{2\delta x}+
+%  o(\delta x)^2,
+%\end{equation}
+%leading to approximation formulas that, for our example problem, read 
+%\begin{align}
+%  \numap{\frac{\partial H}{\partial p}}_i &=
+%  \frac{H(q_i, p_i+\delta p)-H(q_i, p_i-\delta p)}{2\delta p}\\
+%  \numap{\frac{\partial H}{\partial q}}_i &=
+%  \frac{H(q_i+\delta q, p_i)-H(q_i-\delta q, p_i)}{2\delta q},
+%\end{align}
+%where $\delta q$ and $\delta p$ are suitably chosen discretization parameters.
+%Other approximations have higher accuracy, at the cost of extra evaluations of
+%the function to be derived.
 
-
-
+%This need for repeated evaluation of the system's hamiltonian reduces the
+%efficiency of this method. However, programming a procedure for the hamiltonian
+%function is usually much simpler then doing it for the set of its partial
+%derivatives.  Also, adjusting the syntax and semantics of the ODE solver and the
+%hamiltonian procedure is likewise much simpler than when the partial derivatives
+%are coded.  For small systems, using the hamiltonian is much simpler and faster.
+%
+%
+%
 \section{Simple implementation in Python and examples}
 We made a simple implementation of this method in Python, using the standard
 numerical extensions library NumPy~\cite{numpy:2011,numpy:2020}.  It consists of
@@ -190,6 +304,26 @@ notebook} showcasing several example applications.
 \begin{thebibliography}{99}
   \bibitem{gol:1980} H. Goldstein, \textsl{Classical Mechanics.} Addison-Wesley
   (1980)
+%
+  \bibitem{fw:2003} 
+    A.L.~Fetter, J.D.~Walecka,
+    \textsl{Theoretical Mechanics of Particles and Continua.}
+    Dover (2003)
+%
+  \bibitem{odepack}
+  A.C. Hindmarsh, \textsl{ODEPACK, A Systematized Collection of ODE Solvers,} in
+    Scientific Com\-puting, R. S. Stepleman et al. (eds.), North-Holland,
+    Amsterdam, 1983 (vol. 1 of IMACS Transactions on Scientific Computation),
+    pp. 55-64. 
+%
+  \bibitem{odeint}
+  K. Ahnert and M. Mulansky, \textsl{Odeint - Solving Ordinary Differential
+  Equations in C++,} AIP Conf. Proc. 1389, pp. 1586-1589 (2011);
+doi:http://dx.doi.org/10.1063/1.3637934
+%
+  \bibitem{scipy}
+  P. Virtanen et al, \textsl{SciPy 1.0: Fundamental Algorithms for Scientific
+  Computing in Python}, Nature Methods 17, pp. 261--272 (2020)
 %
   \bibitem{french:71} A.P.~French, \textsl{Vibration and Waves.} W.W. Norton \&
   Company (1971)
