@@ -68,7 +68,3 @@ class Hgrad():
         hgrad[self.N:] = -grad[:self.N]
         return hgrad
 
-
-
-
-

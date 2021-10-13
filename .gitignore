@@ -1,4 +1,5 @@
 *.swp
+10.0001616.pdf
 doc/
 !doc/nevh.tex
 __pycache__/
@@ -7,3 +8,4 @@ expr/
 
 paper/*
 !paper/paper.tex
+
