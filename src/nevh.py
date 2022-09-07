@@ -8,8 +8,8 @@
 
 import numpy as np
 
-# Hgrad: Hamiltonian grandient. 
-class Hgrad():
+# HGrad: Hamiltonian grandient. 
+class HGrad():
     """
     A class to compute the hamiltonian gradient of hamiltonian funcs.
 
@@ -36,7 +36,7 @@ class Hgrad():
 
     def __init__(self, H, dpsi, **hparams):
         """
-        Creates and inits Hgrad objects
+        Creates and inits HGrad objects
 
         Parameters
         ----------
@@ -51,7 +51,7 @@ class Hgrad():
         # System global parameters  
         self.H = H
         self.N = len(dpsi) // 2     # Number of degrees of freedom
-        self.dpsi = dpsi            # Step sizes for differentiation
+        self.dpsi = dpsi              # Step fractions for differentiation
         self.hparams = hparams      # Hamiltonian parameters
         self.I = np.eye(2*self.N)   # Identity matrix
 

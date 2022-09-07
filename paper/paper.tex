@@ -5,7 +5,7 @@
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric}
 \usepackage{bbm}
-\usepackage{listings, algorithm2e}
+\usepackage{listings, algpseudocode, amssymb}
 %\usepackage{xcolor}
 \lstset{%
   language=python,
@@ -40,10 +40,10 @@ Portugal}
 \ead{amoreira@ubi.pt}
 \begin{abstract}
   We propose a numerical method for approximate calculations of the time
-  evolution of point particle systems given only the system's hamiltonian
+  evolution of point particle systems given only the system's Hamiltonian
   function and initial conditions. The method both generates and solves the
   equations of motion numerically. For demonstration purposes, a working
-  im\-ple\-men\-ta\-tion (written in \texttt{python}) is described and applied
+  im\-ple\-men\-ta\-tion written in Python is described and applied
   to standard problems. The method may have some pedagogical merits but the
   numerical effort of generating the equations of motion makes it unsuitable for
   actual numerical solution of ``real'' problems with any but just a few degrees
@@ -61,7 +61,7 @@ Numerical methods
 % de N ODEs de 1ª ordem, com a forma 
 % \dot x_i= G_i(t, \tilde x)
 %-----
-In the hamiltonian formulation of classical mechanics~\cite{gol:1980, fw:2003},
+In the Hamiltonian formulation of classical mechanics~\cite{gol:1980, fw:2003},
 the time evolution of physical systems is governed by Hamilton's equations
 which, for point particle systems, take the form
 \begin{align}\label{eq:heqs}
@@ -72,35 +72,35 @@ which, for point particle systems, take the form
 where $N$ is the number of degrees of freedom of the system (three times the
 number of particles for three dimensional, unconstrained systems), $q_i$, $p_i$
 are the canonical coordinates and conjugate momenta respectively, $H=H(t, q_i,
-p_i)$ is the hamiltonian function of the system (for systems with time
-independent potentials and constraints, the hamiltonian is simply the
+p_i)$ is the Hamiltonian function of the system (for systems with time
+independent potentials and constraints, the Hamiltonian is simply the
 mechanical energy function~\cite{fw:2003}) and dotted symbols denote their
-total derivative with respect to time. 
-Renaming the canonical coordinates and momenta as
-\begin{equation}
-  x_j = 
+total derivatives with respect to time. 
+Renaming the canonical coordinates $q_i$ and momenta $p_i$ as
+\begin{equation}\label{eq:xinot}
+  \nu_i = 
   \begin{cases}
-    q_j&\quad\text{if }j\leq N\\
-    p_{j-N}&\quad\text{if }j> N
+    q_i&\quad\text{if }i\leq N\\
+    p_{i-N}&\quad\text{if }i> N
   \end{cases}
-  \qquad j=1, \ldots, 2N,
+  \qquad i=1, \ldots, 2N,
 \end{equation}
 Hamilton's equations take a more unified form
 \begin{equation}\label{eq:std_ode}
-  \dot x_j=G_j(t, x_1, x_2, \ldots, x_{2N}),\quad j=1, \ldots, 2N
+  \dot \nu_i=G_i(t, \nu_1, \nu_2, \ldots, \nu_{2N}), \quad i=1, \ldots, 2N
 \end{equation}
 where
 \begin{equation}
-  G_j(t, x)=
+  G_i(t, \nu)=
   \begin{cases}\displaystyle
-    \pd{H}{x_{j+N/2}} ,&\quad\text{if }j\leq N\\[1em]
+    \pd{H}{\nu_{i+N}} ,&\quad\text{if }i\leq N\\[1em]
     \displaystyle
-    -\pd{H}{x_{j-N/2}}, &\quad\text{if }j> N.
+    -\pd{H}{\nu_{i-N}}, &\quad\text{if }i> N.
   \end{cases}
 \end{equation}
-This expression can be further simplified as a matrix product:
+This expression can be further shortened as a matrix product:
 \begin{equation}\label{eq:rhsmf}
-  G_i=M_{i j}\pd{H}{x_j},\qquad
+  G_i= \sum_j M_{i j}\pd{H}{\nu_j},\qquad
   \text{with }
   M=
   \begin{pmatrix}
@@ -112,74 +112,27 @@ where $\mathbbm{O}$ and $\mathbbm{I}$ represent, respectively, the $N\times N$
 zero and identity matrices.  Equation~\eqref{eq:std_ode} shows the Hamilton's
 equations for a system of point particles with $N$ degrees of freedom as a
 system of $2N$ first order ordinary differential equations (ODEs) on $2N$
-variables $x_1, x_2, \ldots, x_{2N}$.
+variables $\nu_1, \nu_2, \ldots, \nu_{2N}$.
 
 In all but a small handfull of very well known simple problems, this system of
-ODEs must be solved numerically. All popular library routines for solving
-ODEs\footnote{Like ODEPACK~\cite{odepack} for fortran, \texttt{odeint}
-  \cite{odeint} in c++ boost libraries or 
-  \texttt{solve\_ivp} in SciPy~\cite{scipy} for python.}
-require the user to supply subprograms to compute the rhs functions $G_i$.
-The ODE solver invokes these subprograms to compute estimates for the
-values of the unknowns $x_i$ for arbitrary time $t$, given their values at a
-particular instant $t_0$.
+ODEs has no analytical solutions and must be solved numerically.  Popular
+computer library routines for solving ODEs\footnote{Like ODEPACK~\cite{odepack}
+  for fortran, \texttt{odeint} \cite{odeint} in c++ boost libraries or
+\texttt{solve\_ivp} in SciPy~\cite{scipy} for Python.} require the user to
+supply subprograms to compute the right hand side functions $G_i$.  The ODE
+solver invokes these subprograms to compute estimates for the values of the
+unknowns $\nu_i$ for arbitrary time $t$, given their values at a particular
+instant $t_0$.
 
-In this work, we propose an alternative numerical method, where the user only
-supplies the hamiltonian function of the system, leaving its partial derivatives
-to be computed numerically as well.  This procedure is computationally more
-expensive, since many evaluations of the hamiltonian function are needed in
-order to estimate its partial derivatives at any moment in time, and so it
-really is not suitable for the analysis of complex systems with more than just a
-few coupled degreess of freedom. However, for simple systems it is very
-practical and, anyway, it is an interesting concept in its own, which we haven't
-seen exposed elsewhere.
-
-%-------------------------------------------------------------------------------
-\section{Numerical procedure}
-Standard numerical routines for solving systems of ODEs expect the problem to be
-written in the form
-\begin{equation}\label{eq:numheqs}
-  \frac{d\psi_i}{dt}=G_i(t, \psi_1, \psi_2, \ldots),\quad i=1, \ldots, N,
-\end{equation}
-where $N$ is the number of unknown functions $\psi_i(t)$ (and the number of
-equations in well posed problems) and $G_i(t, \psi_1, \psi_2, \ldots)\equiv
-G_i(t,\psi_j)$ are the rhs of the differential equations, which must be coded by
-the user as callable subprograms. For instance, the python standard initial
-value problem solver routine has interface
-\texttt{solve\_ivp(rhs, time\_interval, psi\_0)}; here, \texttt{rhs} is the name
-of a phython function to compute the values of the rhs functions $G_i$.
-During its execution, the ODE solver routine repeatedly invokes these
-subprograms (as many times as required by the specific integration algorithm
-and/or desired accuracy) in order to compute estimates for the values the
-unknown functions $\psi_i$ at given values of $t$.
-
-For Hamilton's equations, the $\psi_i$ are the coordinates and conjugate momenta
-of the system, while the $G_i$ are the partial derivatives of its hamiltonian
-function (reordered and eventually multiplied by -1, according
-to~(\ref{eq:rhsmf})). The usual procedure is to derive analytical expressions
-for the $G_i$ as functions of $t$, the coordinates and the momenta, and then to
-code those expressions as subprograms to be called by the ODE solver routine.
-
-In the method now proposed, instead, the user only has to supply code to
-compute the value of the system's hamiltonian function; its partial derivatives
-(the $G_i$ in~\eqref{eq:numheqs}) are estimated numerically and reordered by
-another subprogram which the ODE solver calls. Note that the differentiation and
-reordering of the partial derivatives can be computed by a general purpose
-routine. Indeed, the gradient can even be computed also by a standard numerical
-library function, if available for the chosen computing system or language.
+In this work, we propose an alternative numerical method (which we will refer to
+as \emph{Numerical Evolution from the Hamiltonian}, or NEVH) where the user only
+needs to write code for the Hamiltonian function of the system, leaving its
+partial derivatives to be computed numerically by a general purpose subprogram.
 Figure~\ref{fig:a} displays flowcharts for both methods.
 \begin{figure}[htb]
   \centering
     \begin{tikzpicture}[node distance=1.0cm, font=\sffamily,scale=0.7]
       \footnotesize
-      \tikzstyle{io} = [trapezium,
-                        trapezium left angle=70,
-                        trapezium right angle=110,
-                        minimum width=1.0cm,
-                        minimum height=.6cm,
-                        text centered,
-                        draw=black,
-                        fill=blue!20]
       \tikzstyle{libcode} = [rectangle,
                              rounded corners,
                              minimum width=1.5cm,
@@ -187,7 +140,8 @@ Figure~\ref{fig:a} displays flowcharts for both methods.
                              minimum height=0.6cm,
                              text centered,
                              draw=black,
-                             fill=orange!20]
+                             %fill=orange!20
+                             ]
       \tikzstyle{usercode} = [rectangle,
                              %rounded corners,
                              minimum width=1.5cm,
@@ -195,16 +149,17 @@ Figure~\ref{fig:a} displays flowcharts for both methods.
                              text centered,
                              draw=black,
                              text width=1.5cm,
-                             fill=green!20]
+                             %fill=green!20
+                             ]
       \tikzstyle{arrow} = [thick,->,>=stealth]
 
       \begin{scope}[xshift=-3.5cm]
         \node at (0,1) {Standard method};
-        \node (input) [io] {Initial state};
+        \node (input) [usercode] {Initial state};
         \node (odesolver) [libcode, below of=input] {ODE Solver};
-        \node (output) [io, below of=odesolver] {Final state};
+        \node (output) [usercode, below of=odesolver] {Final state};
         \node (rhs) [usercode, right of=odesolver, node distance=2.3cm]
-          {$M\,\text{grad}\,H$};
+          {Subprogram for $G_i$};
         \draw [arrow] (input) -- (odesolver);
         \draw [arrow] (odesolver) -- (output);
         \draw [arrow] (odesolver) -- (rhs);
@@ -212,15 +167,16 @@ Figure~\ref{fig:a} displays flowcharts for both methods.
       \end{scope}
 
       \begin{scope}[xshift=3.5cm]
-        \node at (0,1) {Proposed method};
-        \node (input) [io] {Initial state};
+        \node at (0,1) {NEVH};
+        \node (input) [usercode] {Initial state};
         \node (odesolver) [libcode, below of=input] {ODE Solver};
-        \node (output) [io, below of=odesolver] {Final state};
+        \node (output) [usercode, below of=odesolver] {Final state};
         \draw [arrow] (input) -- (odesolver);
         \draw [arrow] (odesolver) -- (output);
-        \node (rhs) [libcode, fill=yellow!35, right of=odesolver,
+        \node (rhs) [libcode,  right of=odesolver,
                      node distance=2.5cm]
-          {General purpose\\ $M\,\text{grad}\,f$ routine};
+                     {General purpose\\ $M_{ij}%\,
+                     \partial/\partial x_j$ subprogram};
         \draw [arrow] (odesolver) -- (rhs);
         \draw [arrow]  (rhs) -- (odesolver);
         \node (h) [usercode, right of=rhs, node distance=2.5cm] {$H$ function};
@@ -234,111 +190,137 @@ Figure~\ref{fig:a} displays flowcharts for both methods.
   supply.\label{fig:a}}
 \end{figure}
 
-The procedure for the calculation of the partial derivatives of the Hamiltonian
-(the "General purpose $M\text{grad} f$" block in the flowchart to the right in
-Figure~\ref{fig:a}) can be implemented in many standard ways. For example, using
-central difference formulas, we can write it in pseudocode as\\
-\begin{algorithm}[H]
-  \For{$1\leq i\leq N$}{
-    $\partial_{q_i}H=\left(H(t,\; \tilde q, q_i+\delta q_i,\; \tilde{p})-
-    H(t,\; \tilde q, q_i-\delta q_i,\; \tilde{p})\right)/(2\delta q_i)$\\
-    $\partial_{p_i}H=\left(H(t,\; \tilde q,\; \tilde{p}, p_i+\delta p_i)-
-    H(t,\; \tilde q,\; \tilde{p}, p_i-\delta p_i)\right)/(2\delta p_i) $
-  } 
-  \Return
-  \{
-    $\partial_{p_1}H,\; \partial_{p_2}H,\;\ldots, \partial_{p_N}H,\;
-    -\partial_{q_1}H,\; -\partial_{q_2}H,\;\ldots, -\partial_{q_N}H$
-  \}
-  
-\end{algorithm}
-\noindent
-where the notation $\tilde q$ above represents all the coordinates
-$q_1, \ldots, q_N$, except the $i$-th coordinate $q_i$, and similarly for the
-momenta ($\tilde p$).
+This method is computationally more expensive the the standard approach, since
+at least two evaluations of the Hamiltonian function are needed to evaluate each
+of its partial derivatives at any moment in time, and so it really is not
+suitable for the analysis of complex systems with more than just a few coupled
+degrees of freedom. However, for simple systems it is very practical
+and, anyway, it is an interesting approach in its own, which we haven't seen
+exposed elsewhere.
 
-%To make this discussion clearer, let us consider a specific problem, the
-%classical harmonic oscillator~\cite{french:71}, and a specific ODE solver method,
-%the explicit forward Euler method \cite{sir:2010}. The hamiltonian function for
-%a classical oscillator with mass $m$ and restoring force constant $k$ is 
-%\begin{equation}
-%  H(q,p)=\frac{1}{2}kq^2+\frac{p^2}{2m}.
+%-------------------------------------------------------------------------------
+\section{Numerical procedure and a simple implementation in Python}
+The ``Generic purpose $M_{ij}\partial/\partial x_j$ subprogram'' in the
+flowchart in Figure~\ref{fig:a} can be easily implemented in any modern computer
+language. Using a central difference formula for the partial derivatives, a
+pseudocode version can be sketched as
+\begin{algorithmic}[H]
+  \Function{G}{$H, t, \nu$}
+  \For{$1\leq i \leq 2N$}
+  \State
+  $\partial_iH\gets \frac{\displaystyle%
+  H(t, \tilde\nu_i,\nu_i+\delta\nu_i)-
+H(t, \tilde\nu_i,\nu_i-\delta\nu_i)}{\displaystyle2\delta\nu_i}
+  $
+  \EndFor\State
+  \Return $\{\partial_{N+1}H, \partial_{N+2}H, \ldots, \partial_{2N}H,
+  -\partial_1H, \partial_2H, \ldots, \partial_NH\}$
+  \EndFunction
+\end{algorithmic}
+(In this pseudocode definition, the notation $\tilde\nu_i$ stands for all the
+variables $\nu_1, \ldots, \nu_{2N}$, \emph{except} the $i$-th, $\nu_i$.)
+
+
+%Standard numerical routines for solving systems of ODEs expect the problem to be
+%written in the form
+%\begin{equation}\label{eq:numheqs}
+%  \frac{d\nu_i}{dt}=G_i(t, \nu_1, \nu_2, \ldots, \nu_{2N}),\quad i=1, \ldots, N,
 %\end{equation}
-%Hamilton's equations~\eqref{eq:heqs} then read
-%\begin{align}
-%  \frac{dq}{dt}&=\frac{p}{m}&
-%  \frac{dp}{dt}&=-kq,
-%\end{align}
-%which are already in the form of eq.~\eqref{eq:numheqs}. Given initial values
-%$q_0$ and $p_0,$ successive values can be estimated at times $t_1$, $t_2$, \ldots
-%by iterating the formulas
-%\begin{align}
-%  q_{i+1}&=q_{i}+\frac{p_i}{m}\delta t_i\label{eq:efe1}\\
-%  p_{i+1}&=p_{i}-kq_i\delta t_i\label{eq:efe2},
-%\end{align}
-%where $\delta t_i=t_{i+1}-t_i$. It is now easy to write a  program that
-%implements this method, and this the usual procedure. With this paper, we
-%consider a method where explicit expressions for the hamiltonian's partial
-%derivatives in the equations of motion are replaced by numerical estimates. In
-%our toy problem, that amounts to rewriting eqs~\eqref{eq:efe1}
-%and~\eqref{eq:efe2} by
-%\begin{align*}
-%  q_{i+1}&=q_{i}+\numap{\frac{\partial H}{\partial p}}_i \delta t_i\\
-%  p_{i+1}&=p_{i}-\numap{\frac{\partial H}{\partial q}}_i\delta t_i,
-%\end{align*}
-%where $\numap{X}_i$ means \emph{numerical approximation of $X$ at time $t_i$.}
-%In order to make numerical aproximations to the partial derivatives of a
-%function, one must evaluate it several times; at the very least, two evaluations
-%are needed. For example, using the second order central difference method, the
-%derivative is estimated as
-%\begin{equation}\label{eq:cdiff}
-%  \frac{\partial\psi}{\partial x} = 
-%    \frac{\psi(x+\delta x)-\psi(x-\delta t)}{2\delta x}+
-%  o(\delta x)^2,
-%\end{equation}
-%leading to approximation formulas that, for our example problem, read 
-%\begin{align}
-%  \numap{\frac{\partial H}{\partial p}}_i &=
-%  \frac{H(q_i, p_i+\delta p)-H(q_i, p_i-\delta p)}{2\delta p}\\
-%  \numap{\frac{\partial H}{\partial q}}_i &=
-%  \frac{H(q_i+\delta q, p_i)-H(q_i-\delta q, p_i)}{2\delta q},
-%\end{align}
-%where $\delta q$ and $\delta p$ are suitably chosen discretization parameters.
-%Other approximations have higher accuracy, at the cost of extra evaluations of
-%the function to be derived.
+%where $N$ is the number of unknown functions $\nu_i(t)$ (and the number of
+%equations in well posed problems) and $G_i(t, \nu_1, \nu_2, \ldots)\equiv
+%G_i(t,\nu_j)$ are the rhs of the differential equations, which must be coded by
+%the user as callable subprograms. For instance, the Python standard initial
+%value problem solver routine has interface
+%\texttt{solve\_ivp(rhs, time\_interval, psi\_0)}; here, \texttt{rhs} is the name
+%of a phython function to compute the values of the rhs functions $G_i$.
+%During its execution, the ODE solver routine repeatedly invokes these
+%subprograms (as many times as required by the specific integration algorithm
+%and/or desired accuracy) in order to compute estimates for the values the
+%unknown functions $\nu_i$ at given values of $t$.
+%
+%For Hamilton's equations, the $\nu_i$ are the coordinates and conjugate momenta
+%of the system, while the $G_i$ are the partial derivatives of its Hamiltonian
+%function (reordered and eventually multiplied by -1, according
+%to~(\ref{eq:rhsmf})). The usual procedure is to derive analytical expressions
+%for the $G_i$ as functions of $t$, the coordinates and the momenta, and then to
+%code those expressions as subprograms to be called by the ODE solver routine.
+%Quite often, this derivation is cumbersome, time consuming and error prone.
+%However, for simple systems at least, numerical calculation of the Hamiltonian
+%function may be a practical alternative.
+%
+%In the method now proposed, instead, the user only has to supply code to
+%compute the system's Hamiltonian; the rhs functions $G_i$ in~\eqref{eq:std_ode},
+%needed by the ODE solver, are computed numerically by a generic subroutine
+%which takes the Hamiltonian function as an argument and returns the values of
+%its partial derivatives, properly reordered and multiplied by $\pm1$ as
+%prescribed in~\eqref{eq:rhsmf}. This function is generic in the sense that it
+%can be written independently of the particular system under analysis or the
+%specific form of its Hamiltonian. For example, using central difference formulas
+%and keeping the notation of~\eqref{eq:xinot}, it can be defined as 
+%\begin{algorithmic}[H]
+%  \Function{G}{$H, t, \nu$}
+%  \For{$1\leq i \leq 2N$}
+%  \State
+%  $\partial_iH\gets \frac{\displaystyle%
+%  H(t, \tilde\nu,\nu_i+\delta\nu_i)-
+%H(t, \tilde\nu,\nu_i-\delta\nu_i)}{\displaystyle2\delta\nu_i}
+%  $
+%  \EndFor\State
+%  \Return $\{\partial_{N+1}H, \partial_{N+2}H, \ldots, \partial_{2N}H,
+%  -\partial_1H, \partial_2H, \ldots, \partial_NH\}$
+%  \EndFunction
+%\end{algorithmic}
+%(In this pseudocode definition, the notation $\tilde\nu$ stands for all the
+%variables $\nu_1, \ldots, \nu_{2N}$, except the $i$-th, $\nu_i$.)
+%In the method now proposed, instead, the user only has to supply code to
+%compute the value of the system's Hamiltonian function; its partial derivatives
+%(the $G_i$ in~\eqref{eq:numheqs}) are estimated numerically and reordered by
+%another subprogram which the ODE solver calls. Note that the differentiation and
+%reordering of the partial derivatives can be computed by a general purpose
+%routine. Indeed, the gradient can even be computed also by a standard numerical
+%library function, if available for the chosen computing system or language.
 
-%This need for repeated evaluation of the system's hamiltonian reduces the
-%efficiency of this method. However, programming a procedure for the hamiltonian
-%function is usually much simpler then doing it for the set of its partial
-%derivatives.  Also, adjusting the syntax and semantics of the ODE solver and the
-%hamiltonian procedure is likewise much simpler than when the partial derivatives
-%are coded.  For small systems, using the hamiltonian is much simpler and faster.
-%
-%
-%
-\section{Simple implementation in Python and an example}
-We made a simple implementation of this method in Python, using standard
-libraries like the numerical extensions package
-NumPy~\cite{numpy:2011,numpy:2020} and the scientific library
-SciPy~\cite{scipy}.  It consists of a simple function that calls the hamiltonian
-function supplied by the user to evaluate, reorder and return its partial
-derivatives, using central difference formulas. The step parameters $\delta q_i,
-\delta p_i$ for the derivation formulas must be supplied by the user.  This
-function is then given as an argument to SciPy's ODE solver \texttt{solve\_ivp}.
-For greater simplicity of use, it is wrapped in a class, whose objects store
-initialization details on creation, like the hamilton function, its parameters,
-the number of degrees of freedom, the values of the discretization steps, etc.
-Furthermore, these objects are defined as callable, returning the list of rhs of
-hamilton's equations for given values of the dynamical variables $q_i, p_i$ and
-time, so that they can be supplied to general ODE integrators just as if those
-rhs functions had been explicitly programmed.
 
-The whole class definition (including comments and python doc strings) fits in a
-few dozen lines of code and is very easy to use. It is available for download as
-free software at github~\cite{nevh:2020}.  The repository also includes a
-\texttt{jupyter notebook} showcasing several example applications.  Here we
-present a particularly simple application example, the one-dimensional harmonic
-oscillator (also included in the repository).
+
+We made a simple implementation of this method in Python, using the standard
+packages NumPy~\cite{numpy:2011,numpy:2020} and SciPy~\cite{scipy}.  It
+consists of a function that calls the Hamiltonian function supplied by
+the user to evaluate, reorder and return its partial derivatives, computed using
+second order central difference formulas.
+%
+%The step parameters $\delta\nu_i$ for
+%the derivation formulas must be supplied by the user.
+%This function is then
+%given
+%as an argument to SciPy's ODE solver \texttt{solve\_ivp}.
+%
+For greater simplicity of use, it is wrapped in a class (named \texttt{HGrad})
+whose objects store, on creation, all the problem physical and numerical
+details, like the Hamilton function and its parameters, the number of degrees of
+freedom, the values of the discretization steps $\delta\nu_i$, etc.
+\texttt{HGrad} objects are defined as callable with signature \texttt{objname(t,
+$\nu_i$)}, returning a list containing the values of the rhs functions $G_i$ in
+Hamilton's equations for given values of the dynamical variables of the
+dynamical variables $\nu_i$ at given time \texttt{t}. In this way, the calling
+syntax of \texttt{HGrad} objects is consistent with the interface of the ODE
+solver we chose for our implementation (SciPy's function \texttt{solve\_ivp})
+regarding the specification of the rhs $G_i$ functions, so that
+\texttt{HGrad} objects can be used
+just as if they were explicitly coded python functions.  The whole class
+definition (including comments and Python doc strings) fits in a few dozen lines
+of code and is very easy to use.  Our code is available for download as free
+software at github~\cite{nevh:2020}.  The repository also includes a
+\texttt{jupyter notebook} showcasing several example applications.
+
+Listing~\ref{lst:1dlho} presents a particularly simple application example, the
+one-dimensional harmonic oscillator. Most of the lines of code displayed deal
+with general adminis\-trative details (initialization of physical and numerical
+paramenters, definition of initial state, and so on), also needed for standard
+numerical resolutions of Hamilton's equations. In Listing~\ref{lst:1dlho}, the
+sections specific to our method are lines 6-8 (definition of the Hamiltonian
+function), line 13 (initialization of the discretization steps for the
+calculation of partial derivatives) and line 19 (definition of the
+\texttt{HGrad} object \texttt{G}).
 
 \begin{lstlisting}[caption= {Numerical solution of Hamiltonian's equations for
 the one-dimensional linear harmonic oscillator. Note that the user only supplies
@@ -346,60 +328,61 @@ code for the system's Hamilton function in lines 7-9. The remaining code lines
 define initial state, physical and numerical parameters.},
 numbers=left, stepnumber=1, label={lst:1dlho}, language=python
 ]
-import numpy as np
 from scipy.integrate import solve_ivp
-import matplotlib.pyplot as plt
 import nevh
+PI = 3.141592653589793
 
 # Hamiltonian function
 def H(t, s, k, m):
     x, p = s
-    return 0.5*k*x**2 + 0.5*p**2/m
+    return 0.5 * k * x**2 + 0.5 * p**2 / m
 
-# "Administrative" details
-# Initial state: off equilibrium position, at rest
-x0 = 1.0; p0 = 0.0; initial_state = [x0,p0]
-# Integration steps parameters for partial derivatives dH/dq and dH/dp
-ds = np.ones(2)*0.1
+# Initial state: off equilibrium position, at rest (x=1, p=0)
+initial_state = [1.0, 0.0]
+# Discretization step parameters for numerical derivatives
+ds = [0.1, 0.1]
 # Hamiltonian parameters. With k=4\pi^2, m=1, the period is 1
-kc = 4 * np.pi**2; mc = 1.0
-wc = (kc / mc)**0.5; Tc = 2 * np.pi / wc
+kc = 4 * PI**2
+mc = 1.0
 
-# Define object that computes and returns the rhs of Hamilton's eqs
-G = nevh.Hgrad(H, ds, k=kc, m=mc)
-tmin = 0; tmax = 2 * Tc # two full oscillation periods
-# Solve Hamilton's equations
-trj = solve_ivp(G, [tmin, tmax], initial_state)
+# Create the HGrad object, use scipy.solve_ivp to
+G = nevh.HGrad(H, ds, k=kc, m=mc)
+
+# solve Halmilton's eqs numerically from t=0 to t=3
+trj = solve_ivp(G, [0.0, 3.0], initial_state)
 \end{lstlisting}
+Note that the \texttt{HGrad} object \texttt{G} is supplied to scipy's ODE solver
+\texttt{solve\_ivp} just as if \texttt{G} was the name of a Python function for
+evaluating the rhs of Hamilton's equations.
+
 Scipy's ODE solver function \texttt{solve\_ivp} returns a composite structure
 (named \texttt{trj} in Listing~\ref{lst:1dlho}) that stores information
-regarding the numerical solution of the ODE. Namely, sampled values of the
-coordinates and momenta at different times in the interval \texttt{[tmin, tmax]}
-are stored at the arrays \texttt{trj.y[0]}, \texttt{trj.y[1]}, while the
-sampling times are stored in \texttt{trj.t}. The sampling frequency can be
-adjusted by the user, but here we just took the default behaviour of
-\texttt{solve\_ivp}, which sets that frequency accordind to precision
-requirements (that we also didn't bother to specify, because it wasn't necessary
-for convergence). 
+on the numerical solution of the ODE, for example, sampled values of the
+coordinates and momenta at different times in the interval \texttt{[tmin,
+tmax]}.
+%are stored at the arrays \texttt{trj.y[0]}, \texttt{trj.y[1]}, while the
+%sampling times are stored in \texttt{trj.t}. The sampling frequency can be
+%adjusted by the user, but here we just took the default behaviour of
+%\texttt{solve\_ivp}, which sets that frequency accordind to precision
+%requirements (that we also didn't bother to specify, because it wasn't necessary
+%for convergence in this example). 
 
+The values of the discretization steps used for the numerical computation of the
+partial derivatives of the Hamiltonian, are stored in array \texttt{ds} in
+Listing~\ref{lst:1dlho} (at line 13).  In the example shown these values are
+actually arbitrary, because the Hamiltonian of the linear harmonic oscilator is a
+quadratic function of all the coordinates and conjugate momenta and the central
+difference formulas yield exact estimates of the derivatives of quadratic
+functions. However, in other problems, the values of the discretizations steps
+may need to be more carefully considered.
 
-More relevant to the method here presented, the values of the discretization
-steps used for the numerical computation of the partial derivatives of the
-hamiltonian, stored in array \texttt{ds} in Listing~\ref{lst:1dlho}, must be
-supplied by the user. In the example shown these values are irrelevant, because
-the hamiltonian of the linear harmonic oscilator is a quadratic function of all
-the coordinates and conjugate momenta and the central difference formulas
-yield exact estimates of the derivatives of quadratic functions. However, in
-other problems, the values of the discretizations steps must be carefully
-considered.
-
-Figure~\ref{fig:1dlho}
-displays the graphs of coordinates and momenta of the numerical solution
-obtained (discrete points), together with plots of the analytical solutions for
-the same problem.
+Figure~\ref{fig:1dlho} displays the values of the  coordinates and momenta of
+the numerical solution obtained (circles and squares, respectively) in arbitrary
+units, together with plots of the analytical solutions for the same problem
+(continuous and dashed lines).
 \begin{figure}[htb]
   \begin{center}
-    \includegraphics[width=0.6\linewidth]{figs/1dlho.png}
+    \includegraphics[width=0.6\linewidth]{figs/shm.png}
   \end{center}
   \caption{Plot of position (\texttt{x}) and momentum (\texttt{p}) for the
   one-dimensional harmonic oscillator problem of Listing~\ref{lst:1dlho}.
@@ -408,19 +391,167 @@ the same problem.
 The correctness of the numerical approximation, at least for pedagogical
 purposes only, is manifest.
 
-Note that we do not claim that this method is more efficient than the standard
-approach. Much to the contrary, in computationally intensive applications, the
-effort involved in the numerical calculation of the partial derivatives of the
-hamiltonian (for which several computations of the hamiltonian function itself
-are needed), at every instant in the simulation, slows the calculaton very
-significantly. What we do claim is that our method makes it very simple to set
-up a practical simulation of small mechanical systems, because the user is
-spared the trouble of deriving expressions for the partial derivatives of the
-hamiltonian and writing subroutines that compute them, with the calling
-signature that the particular ODE solver expects.
+The preceding example is so simple that the main advantage of our method is not
+really conveyed, since it's a trivial matter to derive and code the partial
+derivatives of the harmonic oscillator Hamiltonian. Let us now consider a more
+complex problem, the dynamics of the planar double pendulum. A planar double
+pendulum is a set of two simple pendulums where the second is suspended from the
+bob of the first (see Figure~\ref{fig:b}) and both are constrained to move in
+the same vertical plane. This system has two obvious degrees of freedom, the
+angles $\varphi_1$ and $\varphi_2$ which both pendulums define with the vertical
+(see Figure~\ref{fig:b}).
+\begin{figure}[htb]
+  {\centering
+    \begin{tikzpicture}
+      \small
+      \draw (-1,0) -- (1,0);
+      \foreach \x in {0.8, 0.6, 0.4, 0.2}
+      {
+        \draw (\x,0) -- +(60:0.3);
+        \draw (-\x,0) -- +(60:0.3);
+      }
+      \draw (0,0) -- (60:0.3);
+      \draw [thick] (0,0) -- (285:0.9) coordinate(a)
+        node[midway, right]{$l_1$} 
+        -- +(310:0.9) coordinate(b)
+        node[midway,right] {$l_2$};
+      \fill (a) circle(0.1) node [right]{$m_1$};
+      \fill (b) circle(0.1) node [right]{$m_2$};
+      \draw [dashed] (0,0) -- + (0,-1);
+      \draw (285:0.7) arc (285:270:0.7)node [left] {$\varphi_1$};
+      \draw [dashed] (a) --+ (0,-1);
+      \path (a) -- +(310:0.7) coordinate(c);
+      \draw (c) arc (310:270:0.7) node[left]{$\varphi_2$};
+    \end{tikzpicture}
+    \caption{\label{fig:b}Double pendulum.}
+  }\par
+\end{figure}
+
+For the case of equal masses $m$ and lengths $l$, the Hamiltonian
+reads~\cite{bohm:2018}
+\begin{equation}\label{eq:dph}
+  H=\frac{1}{2ml^2}
+  \frac{p_1^2 + p_2^2-2p_1p_2\cos(\varphi_1-\varphi_2)}%
+    {1+\sin^2(\varphi_1-\varphi_2)}-
+    mgl(2\cos\varphi_1+\cos\varphi_2),
+\end{equation}
+where the conjugate momenta $p_1$, $p_2$ are given by
+\begin{align}
+  p_1&=2ml^2\dot{\varphi_1}+ml^2\dot{\varphi_2}\cos(\varphi_1-\varphi_2)&
+  p_2&=2ml^2\dot{\varphi_2}+ml^2\dot{\varphi_1}\cos(\varphi_1-\varphi_2)
+\end{align}
+Calculating the partial derivatives of this Hamiltonian relative to the angles
+$\varphi_i$ and their conjugate momentum $p_i$ and programming the resulting
+expressions is quite tedious and error-prone. Here, NEVH is markedly
+simpler: the user just just needs to code the Hamiltonian~\eqref{eq:dph}, and
+that's all. No need to derive and code complicated expressions for the right
+hand side functions $G_i$ in Hamilton's equations~\eqref{eq:std_ode}.
+
+For the double pendulum, we implemented the two methods.  Both approaches yield
+similar results. Figure~\ref{fig:c} shows plots of the difference between
+results for the two angles $\varphi_1$ and $\varphi_2$ obtained using both
+methods, for the case $m=1$\,kg, $l=1$\,m, $g=9.8$\,m/s$^2$. The initial
+configuration is $\varphi_1=\pi/2,\ \varphi_2=0,\ p_1=p_2=0$.
+\begin{figure}[htb]
+  {\centering
+    \includegraphics[width=0.8\linewidth]{figs/dpchaos.png}
+    \caption{\label{fig:c}Double pendulum. The plots show the diference between
+    the angle values ($\varphi_1$ on the left, $\varphi_2$ to the right)
+    computed with the standard and the NEVH method. Initial state is
+    $\varphi_1=\pi/2$, $\varphi_2=0$, $p_1=p_2=0$. The ODE solver
+    (\texttt{scipy.integrate.solve\_ivp}) is configured similarly for both
+  methods.}
+  }\par
+\end{figure}
+Both methods initially yield essentially the same results. However, due to the
+well known chaotic nature of the double pendulum dynamics, small discrepancies
+grow up and sooner or later lead to completely different predicted evolutions of
+the system.  Expectedly, this amplifications of differences can be somewhat
+delayed by choosing smaller discretization steps in the numeric calculation of
+the partial derivatives of the Hamiltonian.
+
+In this example, the Hamiltonian function is five python lines long; the
+definition of the $G_i$ functions is twice as long, taking 12 lines of code. 
+It must also be said, however, that the NEVH code for this problem is around
+four times slower than the program for the standard approach.
+
+\section{Accuracy}
+The sources of numerical inaccuracy specific to the method here proposed are the
+errors in the numerical evaluation of the partial derivatives of the
+Hamiltonian. In our implementation, we used lowest order central difference
+formulas, and so these errors are expected to be of second order on the
+discretizations steps $\delta\nu_i$ (except for linear and quadratic functions,
+for which central difference formulas yield exact results).
+In order to check this, we compared results 
+ for a single
+time step evolution of a one-dimensional point partice subject to power law
+potentials, 
+with Hamiltonian function
+\begin{equation}\label{eq:errh}
+  H_{\alpha,n}(x,p)=\alpha x^n+\frac{1}{2m}p^2,
+\end{equation}
+for some real constant $\alpha$.
+We took as measure of error the $L_2$-norm of the difference of final states
+computed with NEVH and the standard approach.
+The results are plotted in the graph displayed in Figure~\ref{fig:e} as 
+functions of the discretization steps $\delta\nu_i$ (we
+took $\delta\nu_1=\delta\nu_2\equiv\delta\nu$ in arbitrary units).
+\begin{figure}[htb]
+  \centering
+    \includegraphics[width=0.6\linewidth]{figs/errs.png}
+  \par
+  \caption{\label{fig:e}L2-norm of the difference between results obtained
+    with the standard method and NEVH for a single time step (of duration
+    $\delta t=0.001$, in arbitrary units) evolution of a point particle with
+    hamiltonian \eqref{eq:errh} as a function of the discretizations steps
+    $\delta\nu_1=\delta\nu_2\equiv\delta\nu$. The values $\alpha=m=1$ (arbitrary
+    units) were used. The initial state was $x=1.0;\ p=0.0$.}
+\end{figure}
+
+The graph displays the expected $O(\delta\nu^2)$ behaviour, for
+$\delta\nu\gtrsim5\times10^{-6}$. For smaller values of $\delta\nu$, this tendency is
+not perceived because floating point round-off errors become dominant (at the
+floating point precision used in our calculation), hiding the contribution from
+the calculation of the partial derivatives. For the case $n=2$, the numerical
+derivation is exact and only round-off errors affect the results. These two
+facts agree with our expectations, supporting the conviction that NEVH is a
+well behaved, reliable method for the numerical solution of Hamilton's equations
+for simple, low-dimensional point particle systems.
 
 
 \section{Conclusion}
+For numerical simulations of the dynamics of simple point particle systems
+with few coupled degrees of freedom, NEVH is much simpler then the traditional
+approach, because the user is spared the trouble of deriving expressions for the
+partial derivatives of the Hamiltonian with respect to the system's coordinates
+and momenta and of writing subprograms to compute them. The user only needs to
+supply code for the system's Hamiltonian itself.
+
+It is true that NEVH runs
+slower than equivalent traditional approaches, because two or more evaluations
+of tht Hamiltonian are needed to compute each of its partical derivatives. 
+However, for simple systems, the time delay is hardly noticeable by the user.
+
+Regarding accuracy, NEVH behaves as expected and (also as expected) does not
+seem to introduce particular numerical instablities.
+
+For these reasons, we find quite reasonable that NEVH shoud be considered in
+numerical simulations of simple point particle systems, in particular for
+pedagogical purposes.
+
+
+%Note that we do not claim that this method is more efficient than the standard
+%approach. Much to the contrary, in computationally intensive applications, the
+%effort involved in the numerical calculation of the partial derivatives of the
+%Hamiltonian (for which several computations of the Hamiltonian function itself
+%are needed), at every instant in the simulation, slows the calculaton very
+%significantly. What we do claim is that our method makes it very simple to set
+%up a practical simulation of small mechanical systems, because the user is
+%spared the trouble of deriving expressions for the partial derivatives of the
+%Hamiltonian and writing subroutines that compute them, with the calling
+%signature that the particular ODE solver expects.
+
+
 
 
 \section*{References}
@@ -469,6 +600,9 @@ doi:http://dx.doi.org/10.1063/1.3637934
 %
   \bibitem{nevh:2020} J.M.L.~Amoreira, L.J.M.~Amoreira,
   \texttt{https://github.com/ljmamoreira/nevh} (2020)
+%
+  \bibitem{bohm:2018} John L. Bohm, \textsl{A Student's Guide to Analytical
+  Mechanics.} Cambridge University Press (2018)
 
 \end{thebibliography}
 \end{document}
